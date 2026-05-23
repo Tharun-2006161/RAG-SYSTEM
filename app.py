@@ -158,12 +158,12 @@ async def send_otp_email(to_email: str, code: str):
             use_tls=True,
             username=SMTP_EMAIL,
             password=SMTP_PASSWORD,
-            timeout=5.0
+            timeout=15.0
         )
         print(f"OTP email sent to {to_email}")
     except Exception as e:
         print(f"Failed to send email: {e}")
-        raise Exception("SMTP failed")
+        raise Exception(f"SMTP failed: {str(e)}")
 
 
 # ── Agent State ──────────────────────────────────────────────────────────────
@@ -445,7 +445,8 @@ async def register(request: Request, db: sqlite3.Connection = Depends(get_db)):
         c.execute("DELETE FROM users WHERE email = ?", (email,))
         c.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
         db.commit()
-        return JSONResponse({"error": "Failed to send email. Check your SMTP App Password settings."}, status_code=500)
+        error_msg = str(e)
+        return JSONResponse({"error": f"Email failed: {error_msg}"}, status_code=500)
 
     return {"message": "OTP sent to email", "email": email}
 
@@ -563,7 +564,8 @@ async def forgot_password(request: Request, db: sqlite3.Connection = Depends(get
     try:
         await send_otp_email(email, code)
     except Exception as e:
-        return JSONResponse({"error": "Failed to send email. Check your SMTP App Password settings."}, status_code=500)
+        error_msg = str(e)
+        return JSONResponse({"error": f"Email failed: {error_msg}"}, status_code=500)
 
     return {"message": "OTP sent to email", "email": email}
 
