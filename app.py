@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TypedDict, Optional
 
-from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, Response
+from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, Response, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -392,7 +392,7 @@ async def home():
 # ── Auth Endpoints ──────────────────────────────────────────────────────────
 
 @app.post("/api/auth/register")
-async def register(request: Request, db: sqlite3.Connection = Depends(get_db)):
+async def register(request: Request, background_tasks: BackgroundTasks, db: sqlite3.Connection = Depends(get_db)):
     data = await request.json()
     email = data.get("email", "").strip().lower()
     username = data.get("username", "").strip()
@@ -437,7 +437,7 @@ async def register(request: Request, db: sqlite3.Connection = Depends(get_db)):
     )
     db.commit()
 
-    await send_otp_email(email, code)
+    background_tasks.add_task(send_otp_email, email, code)
 
     return {"message": "OTP sent to email", "email": email}
 
@@ -527,7 +527,7 @@ async def logout():
 
 
 @app.post("/api/auth/forgot-password")
-async def forgot_password(request: Request, db: sqlite3.Connection = Depends(get_db)):
+async def forgot_password(request: Request, background_tasks: BackgroundTasks, db: sqlite3.Connection = Depends(get_db)):
     data = await request.json()
     email = data.get("email", "").strip().lower()
 
@@ -552,7 +552,7 @@ async def forgot_password(request: Request, db: sqlite3.Connection = Depends(get
     )
     db.commit()
 
-    await send_otp_email(email, code)
+    background_tasks.add_task(send_otp_email, email, code)
 
     return {"message": "OTP sent to email", "email": email}
 
