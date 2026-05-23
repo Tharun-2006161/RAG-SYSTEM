@@ -1,0 +1,19 @@
+[project]
+name = "self-healing-rag"
+version = "0.1.0"
+description = "A Self-Healing RAG System using LangGraph, ChromaDB, and Groq"
+requires-python = ">=3.10"
+dependencies = [
+    "langgraph",
+    "langchain-groq",
+    "langchain-community",
+    "langchain-text-splitters",
+    "chromadb",
+    "python-dotenv",
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+    "pyjwt>=2.13.0",
+    "bcrypt>=5.0.0",
+    "aiosmtplib>=5.1.0",
+]
