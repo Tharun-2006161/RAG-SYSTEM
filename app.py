@@ -162,7 +162,7 @@ async def send_otp_email(to_email: str, code: str):
         print(f"OTP email sent to {to_email}")
     except Exception as e:
         print(f"Failed to send email: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send verification email. Please check server config.")
+        raise Exception("SMTP failed")
 
 
 # ── Agent State ──────────────────────────────────────────────────────────────
@@ -392,7 +392,7 @@ async def home():
 # ── Auth Endpoints ──────────────────────────────────────────────────────────
 
 @app.post("/api/auth/register")
-async def register(request: Request, background_tasks: BackgroundTasks, db: sqlite3.Connection = Depends(get_db)):
+async def register(request: Request, db: sqlite3.Connection = Depends(get_db)):
     data = await request.json()
     email = data.get("email", "").strip().lower()
     username = data.get("username", "").strip()
@@ -437,7 +437,14 @@ async def register(request: Request, background_tasks: BackgroundTasks, db: sqli
     )
     db.commit()
 
-    background_tasks.add_task(send_otp_email, email, code)
+    try:
+        await send_otp_email(email, code)
+    except Exception as e:
+        # If email fails, delete the user so they can try again later
+        c.execute("DELETE FROM users WHERE email = ?", (email,))
+        c.execute("DELETE FROM otp_codes WHERE email = ?", (email,))
+        db.commit()
+        return JSONResponse({"error": "Failed to send email. Check your SMTP App Password settings."}, status_code=500)
 
     return {"message": "OTP sent to email", "email": email}
 
@@ -527,7 +534,7 @@ async def logout():
 
 
 @app.post("/api/auth/forgot-password")
-async def forgot_password(request: Request, background_tasks: BackgroundTasks, db: sqlite3.Connection = Depends(get_db)):
+async def forgot_password(request: Request, db: sqlite3.Connection = Depends(get_db)):
     data = await request.json()
     email = data.get("email", "").strip().lower()
 
@@ -552,7 +559,10 @@ async def forgot_password(request: Request, background_tasks: BackgroundTasks, d
     )
     db.commit()
 
-    background_tasks.add_task(send_otp_email, email, code)
+    try:
+        await send_otp_email(email, code)
+    except Exception as e:
+        return JSONResponse({"error": "Failed to send email. Check your SMTP App Password settings."}, status_code=500)
 
     return {"message": "OTP sent to email", "email": email}
 
