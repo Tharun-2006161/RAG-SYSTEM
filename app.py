@@ -154,10 +154,11 @@ async def send_otp_email(to_email: str, code: str):
         await aiosmtplib.send(
             message,
             hostname="smtp.gmail.com",
-            port=587,
-            start_tls=True,
+            port=465,
+            use_tls=True,
             username=SMTP_EMAIL,
             password=SMTP_PASSWORD,
+            timeout=5.0
         )
         print(f"OTP email sent to {to_email}")
     except Exception as e:
